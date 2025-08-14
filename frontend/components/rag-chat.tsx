@@ -8,20 +8,35 @@ import { Message } from "@/types/chat"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeBlock } from "@/components/code-block"
+import { Database } from "lucide-react"
 
 interface RagChatProps {
   messages: Message[]
   isLoading: boolean
-  onSendMessage: (content: string, modelConfig?: { useOpenAI: boolean; selectedModel: string }) => void
+  onSendRagMessage: (content: string, useOpenAI: boolean, selectedModel: string) => void
+  // Hook에서 관리하는 상태들 추가
+  uploadedFiles: File[]
+  ragKey: string
+  addUploadedFile: (file: File) => void
+  removeUploadedFile: (index: number) => void
+  setRagKey: (key: string) => void
 }
 
-export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
+export function RagChat({ 
+  messages, 
+  isLoading, 
+  onSendRagMessage,
+  uploadedFiles,
+  ragKey,
+  addUploadedFile,
+  removeUploadedFile,
+  setRagKey
+}: RagChatProps) {
   const [inputValue, setInputValue] = useState("")
   const [useOpenAI, setUseOpenAI] = useState(false)
   const [selectedModel, setSelectedModel] = useState("gpt-oss:20b")
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [isUploading, setIsUploading] = useState(false)
   const [showSidebar, setShowSidebar] = useState(false)
+  const [isEmbedding, setIsEmbedding] = useState(false)
 
   // OpenAI 모델 목록
   const openaiModels = [
@@ -53,49 +68,103 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
     console.log("Model changed to:", isOpenAI ? "gpt-3.5-turbo" : "gpt-oss:20b")
   }
 
-  // 파일 선택 처리
+  // 파일 제거
+  const removeFile = (index: number) => {
+    removeUploadedFile(index)
+  }
+
+  // 파일 업로드 후 더보기 창 활성화
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files) {
       const pdfFiles = Array.from(files).filter(file => file.type === 'application/pdf')
       if (pdfFiles.length > 0) {
-        setUploadedFiles(prev => [...prev, ...pdfFiles])
+        pdfFiles.forEach(file => addUploadedFile(file))
         console.log('PDF 파일 선택됨:', pdfFiles.map(f => f.name))
+        // 파일이 선택되면 더보기 창 활성화
+        setShowSidebar(true)
+        // 새로운 파일이 추가되면 ragKey 초기화
+        setRagKey("")
       } else {
         alert('PDF 파일만 선택할 수 있습니다.')
       }
     }
   }
 
-  // 파일 제거
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  // 파일 업로드 (실제 백엔드 연동 시 사용)
-  const uploadFiles = async () => {
+  // 임베딩 처리 및 Faiss 벡터DB 저장
+  const handleEmbedding = async () => {
     if (uploadedFiles.length === 0) return
     
-    setIsUploading(true)
+    setIsEmbedding(true)
+    
     try {
-      // TODO: 실제 파일 업로드 API 호출
-      console.log('파일 업로드 시작:', uploadedFiles.map(f => f.name))
+      console.log('임베딩 시작:', uploadedFiles.map(f => f.name))
       
-      // 임시로 2초 대기 (실제 업로드 시에는 제거)
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // FormData를 사용하여 파일과 함께 전송
+      const formData = new FormData()
+      formData.append('useOpenAI', useOpenAI.toString())
+      formData.append('selectedModel', selectedModel)
       
-      console.log('파일 업로드 완료')
+      // 업로드된 파일들 추가
+      uploadedFiles.forEach((file) => {
+        formData.append('files', file)
+      })
+
+      // 요청 URL 로깅
+      const requestUrl = 'http://localhost:8002/api/chat/embed'
+      console.log('요청 URL:', requestUrl)
+      console.log('FormData 내용:')
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value)
+      }
+
+      // 임베딩 API 엔드포인트로 전송
+      const response = await fetch(requestUrl, {
+        method: 'POST',
+        body: formData,
+      })
+
+      console.log('Response status:', response.status)
+      console.log('Response headers:', response.headers)
+      console.log('Response URL:', response.url)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error response body:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log('임베딩 완료:', data)
+      
+      // 임베딩 완료 후 ragKey 저장
+      if (data.rag_key) {
+        setRagKey(data.rag_key)
+        console.log('RAG 키 설정됨:', data.rag_key)
+      }
+      
+      // 성공 메시지 표시
+      alert('임베딩이 완료되었습니다!')
+      
     } catch (error) {
-      console.error('파일 업로드 실패:', error)
+      console.error('임베딩 실패:', error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      alert('임베딩 처리 중 오류가 발생했습니다: ' + errorMessage)
     } finally {
-      setIsUploading(false)
+      setIsEmbedding(false)
     }
   }
 
   const handleSendMessage = () => {
     if (inputValue.trim() && !isLoading) {
-      // 모델 설정 정보를 포함하여 메시지 전송
-      onSendMessage(inputValue, { useOpenAI, selectedModel })
+      // ragKey가 없으면 임베딩을 먼저 하라고 안내
+      if (!ragKey) {
+        alert('먼저 문서를 임베딩해주세요!')
+        return
+      }
+      
+      // RAG 메시지 전송 (ragKey는 hook에서 자동으로 사용)
+      onSendRagMessage(inputValue, useOpenAI, selectedModel)
       setInputValue("")
     }
   }
@@ -138,9 +207,9 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
       <div className="flex-1 flex flex-col min-h-0">
         {/* RAG 설정 UI - 한 줄 버전 */}
         <div className="border-b border-gray-200 bg-gray-50 px-6 py-3 flex-shrink-0">
-          <div className="max-w-6xl mx-auto w-full">
+          <div className="max-w-5xl mx-auto w-full">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-5">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-gray-700">📚 문서</span>
                   <input
@@ -156,15 +225,6 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
                       <span>파일 선택</span>
                     </Button>
                   </label>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-700">🔍 검색</span>
-                  <select className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                    <option value="semantic">의미론적</option>
-                    <option value="keyword">키워드</option>
-                    <option value="hybrid">하이브리드</option>
-                  </select>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -222,7 +282,7 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
                   className="flex items-center gap-2"
                 >
                   <span>{showSidebar ? '◀' : '▶'}</span>
-                  <span className="text-xs">설정 더보기</span>
+                  <span className="text-xs">더보기</span>
                 </Button>
               </div>
             </div>
@@ -232,6 +292,38 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
         {/* 메시지 영역 */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           <div className="max-w-4xl mx-auto w-full">
+            {/* 시작 화면 - 메시지가 없을 때만 표시 */}
+            {messages.length === 0 && (
+              <div className="text-center py-16">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mb-6">
+                  <Database className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                  RAG 채팅
+                </h2>
+                <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+                  문서 기반 검색 증강 생성 채팅입니다. PDF 문서를 업로드하고 해당 내용에 대한 질문을 할 수 있습니다.
+                </p>
+                <div className="bg-blue-50 rounded-xl p-6 max-w-md mx-auto">
+                  <h3 className="text-lg font-semibold text-blue-900 mb-3">📚 사용 방법</h3>
+                  <div className="text-sm text-blue-800 space-y-2 text-left">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-600">1.</span>
+                      <span>PDF 파일을 선택하여 업로드하세요</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-600">2.</span>
+                      <span>문서 내용에 대한 질문을 입력하세요</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-600">3.</span>
+                      <span>AI가 문서를 기반으로 정확한 답변을 제공합니다</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -240,11 +332,11 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
                 {/* 사용자 아이콘 */}
                 {message.role === "user" ? (
                   <div className="order-3 w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                    사용자
+                    Me
                   </div>
                 ) : (
-                  <div className="order-1 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                    RAG
+                  <div className="order-1 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                  AI
                   </div>
                 )}
 
@@ -282,15 +374,15 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
             {/* 로딩 상태 */}
             {isLoading && (
               <div className="flex gap-4 justify-start">
-                <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                   RAG
                 </div>
                 <div className="w-full">
                   <div className="bg-gray-50 rounded-lg p-5">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                     </div>
                   </div>
                 </div>
@@ -337,27 +429,53 @@ export function RagChat({ messages, isLoading, onSendMessage }: RagChatProps) {
           <div className="p-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">📁 문서 관리</h3>
             
+            {/* RAG 키 상태 */}
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-700">🔑 RAG 키</span>
+                <span className={cn(
+                  "text-xs px-2 py-1 rounded-full",
+                  ragKey ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                )}>
+                  {ragKey ? "준비됨" : "대기중"}
+                </span>
+              </div>
+              <div className="text-xs text-blue-600 font-mono break-all">
+                {ragKey || '임베딩 후 생성됩니다'}
+              </div>
+            </div>
+            
             {/* 파일 업로드 상태 */}
             <div className="mb-4 p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">업로드 상태</span>
-                {uploadedFiles.length > 0 && (
-                  <Button
-                    onClick={uploadFiles}
-                    disabled={isUploading}
-                    size="sm"
-                    className="h-7 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    {isUploading ? '업로드 중...' : '업로드'}
-                  </Button>
-                )}
               </div>
               <div className="text-xs text-gray-600">
                 📊 문서: {uploadedFiles.length}개<br/>
-                🔗 벡터: {uploadedFiles.length > 0 ? '준비됨' : '대기중'}<br/>
+                🔗 벡터: {ragKey ? '준비됨' : '대기중'}<br/>
                 🤖 {useOpenAI ? "OpenAI" : "Ollama"} - {selectedModel}
               </div>
             </div>
+
+            {/* 임베딩 버튼 - 사이드바 크기만큼 늘림 */}
+            {uploadedFiles.length > 0 && (
+              <div className="mb-4">
+                <Button
+                  onClick={handleEmbedding}
+                  disabled={isEmbedding}
+                  className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-medium"
+                >
+                  {isEmbedding ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>임베딩 중...</span>
+                    </div>
+                  ) : (
+                    <span>해당 문서로 임베딩하기</span>
+                  )}
+                </Button>
+              </div>
+            )}
 
             {/* 선택된 파일 목록 */}
             {uploadedFiles.length > 0 ? (

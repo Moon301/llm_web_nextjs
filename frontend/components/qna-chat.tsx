@@ -8,6 +8,7 @@ import { Message } from "@/types/chat"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeBlock } from "@/components/code-block"
+import { MessageSquare } from "lucide-react"
 
 interface QnaChatProps {
   messages: Message[]
@@ -151,6 +152,38 @@ export function QnaChat({ messages, isLoading, onSendMessage }: QnaChatProps) {
       {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
         <div className="max-w-4xl mx-auto w-full">
+          {/* 시작 화면 - 메시지가 없을 때만 표시 */}
+          {messages.length === 0 && (
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mb-6">
+                <MessageSquare className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Q&A 채팅
+              </h2>
+              <p className="text-lg text-gray-600 max-w-4xl mx-auto mb-8">
+                일반적인 질문과 답변을 위한 AI 채팅입니다. 다양한 주제에 대해 지능적인 응답을 받을 수 있습니다.
+              </p>
+              <div className="bg-blue-50 rounded-xl p-6 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">💡 사용 팁</h3>
+                <div className="text-sm text-blue-800 space-y-2 text-left">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    <span>구체적이고 명확한 질문을 해보세요</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    <span>복잡한 주제도 단계별로 나누어 질문하세요</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    <span>AI 모델을 선택하여 다양한 응답을 경험해보세요</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {messages.map((message) => (
             <div
               key={message.id}

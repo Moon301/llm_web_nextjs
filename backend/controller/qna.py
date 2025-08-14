@@ -9,7 +9,6 @@ from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-import json
 
 # 환경 변수 로드
 load_dotenv()
@@ -66,7 +65,7 @@ def get_llm(use_openai: bool, select_model: str):
         )
     else:
         print(f"Using Ollama model: {select_model}")
-        # Ollama 모델 사용
+        # Ollama 모델 사용 (--network host로 호스트 네트워크 직접 사용)
         return ChatOllama(
             model=select_model,
             temperature=0.7
@@ -283,8 +282,6 @@ async def chat(request: ChatRequest):
                 # 시스템 프롬프트 설정
                 system_prompts = {
                     "qna": "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
-                    "rag": "당신은 문서 기반 검색 증강 생성(RAG) 시스템입니다. 제공된 문서 정보를 바탕으로 정확한 답변을 생성하세요.",
-                    "compare": "여러 AI 모델의 응답을 비교 분석하는 시스템입니다. 객관적이고 균형 잡힌 분석을 제공하세요."
                 }
                 
                 system_prompt = system_prompts.get(request.tab_type, system_prompts["qna"])

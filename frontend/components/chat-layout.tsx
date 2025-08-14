@@ -6,25 +6,21 @@ import { Button } from "@/components/ui/button"
 import { MessageSquare, RotateCcw, Bot, Database, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useChat } from "@/hooks/use-chat"
+import { HomePage } from "@/components/home-page"
 import { QnaChat } from "@/components/qna-chat"
 import { RagChat } from "@/components/rag-chat"
 import { CompareChat } from "@/components/compare-chat"
 
-type MenuTab = "qna" | "rag" | "compare"
+type MenuTab = "home" | "qna" | "rag" | "compare" 
 
 export default function ChatLayout() {
-  const [activeTab, setActiveTab] = useState<MenuTab>("qna")
-  const { messages, isLoading, sendMessage, clearChat, setTab } = useChat()
+  const [activeTab, setActiveTab] = useState<MenuTab>("home")
+  const { messages, isLoading, qnaChat, ragChat, clearChat, setTab } = useChat()
 
   // 탭 변경 시 대화 내용 유지
   const handleTabChange = (tab: MenuTab) => {
     setActiveTab(tab)
     setTab(tab) // useChat 훅의 탭 변경 함수 호출
-  }
-
-  const handleSendMessage = async (content: string, modelConfig?: { useOpenAI: boolean; selectedModel: string }) => {
-    // activeTab 정보와 모델 설정 정보와 함께 메시지 전송
-    await sendMessage(content, activeTab, modelConfig)
   }
 
   const handleClearChat = () => {
@@ -50,6 +46,24 @@ export default function ChatLayout() {
 
         {/* Menu Tabs */}
         <div className="p-4 space-y-2 flex-shrink-0">
+          <button
+            onClick={() => handleTabChange("home")}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              activeTab === "home" ? "bg-blue-200 text-blue-900 shadow-sm" : "text-blue-700 hover:bg-blue-200/50",
+            )}
+          >
+            <div className="w-5 h-5 flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <div>
+              <div className="font-medium">Home</div>
+              <div className="text-xs opacity-75">프로젝트 소개</div>
+            </div>
+          </button>
+
           <button
             onClick={() => handleTabChange("qna")}
             className={cn(
@@ -115,11 +129,13 @@ export default function ChatLayout() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-lg font-semibold text-gray-900">
+                {activeTab === "home" && "KETI Chat"}
                 {activeTab === "qna" && "Q&A 채팅"}
                 {activeTab === "rag" && "RAG 채팅"}
                 {activeTab === "compare" && "모델 비교"}
               </h1>
               <p className="text-sm text-gray-600">
+                {activeTab === "home" && "AI 기반 대화형 챗봇 플랫폼입니다."}
                 {activeTab === "qna" && "일반적인 질문과 답변을 위한 채팅입니다."}
                 {activeTab === "rag" && "문서 기반 검색 증강 생성 채팅입니다."}
                 {activeTab === "compare" && "여러 AI 모델의 응답을 비교해보세요."}
@@ -129,11 +145,15 @@ export default function ChatLayout() {
         </div>
 
         {/* 탭별 채팅 컴포넌트 */}
+        {activeTab === "home" && (
+          <HomePage />
+        )}
+
         {activeTab === "qna" && (
           <QnaChat
             messages={messages}
             isLoading={isLoading}
-            onSendMessage={handleSendMessage}
+            onSendMessage={qnaChat.sendMessage}
           />
         )}
 
@@ -141,7 +161,12 @@ export default function ChatLayout() {
           <RagChat
             messages={messages}
             isLoading={isLoading}
-            onSendMessage={handleSendMessage}
+            onSendRagMessage={ragChat.sendRagMessage}
+            uploadedFiles={ragChat.uploadedFiles}
+            ragKey={ragChat.ragKey}
+            addUploadedFile={ragChat.addUploadedFile}
+            removeUploadedFile={ragChat.removeUploadedFile}
+            setRagKey={ragChat.setRagKey}
           />
         )}
 
@@ -149,7 +174,7 @@ export default function ChatLayout() {
           <CompareChat
             messages={messages}
             isLoading={isLoading}
-            onSendMessage={handleSendMessage}
+            onSendMessage={qnaChat.sendMessage}
           />
         )}
       </div>

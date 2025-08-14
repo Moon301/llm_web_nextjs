@@ -8,6 +8,7 @@ import { Message } from "@/types/chat"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeBlock } from "@/components/code-block"
+import { BarChart3 } from "lucide-react"
 
 interface CompareChatProps {
   messages: Message[]
@@ -70,7 +71,7 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
     "phi4:14b",
     "qwen3:14b",
     "qwen2.5:14b",
-    "llama3.3:latest ",
+    "llama3.3:latest",
   ]
 
   return (
@@ -129,70 +130,104 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
 
       {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={cn("flex gap-4", message.role === "user" ? "justify-end" : "justify-start")}
-          >
-            {/* 사용자 아이콘 */}
-            {message.role === "user" ? (
-              <div className="order-3 w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                사용자
+        <div className="max-w-4xl mx-auto w-full">
+          {/* 시작 화면 - 메시지가 없을 때만 표시 */}
+          {messages.length === 0 && (
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mb-6">
+                <BarChart3 className="w-10 h-10 text-white" />
               </div>
-            ) : (
-              <div className="order-1 w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                모델 비교
+              </h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
+                여러 AI 모델의 응답을 비교해보세요. 각 모델의 특성과 성능을 직접 체험할 수 있습니다.
+              </p>
+              <div className="bg-blue-50 rounded-xl p-6 max-w-md mx-auto">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">🔄 비교 방법</h3>
+                <div className="text-sm text-blue-800 space-y-2 text-left">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">1.</span>
+                    <span>비교할 AI 모델을 선택하세요</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">2.</span>
+                    <span>동일한 질문을 입력하세요</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-600">3.</span>
+                    <span>각 모델의 응답을 비교 분석해보세요</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn("flex gap-4", message.role === "user" ? "justify-end" : "justify-start")}
+            >
+              {/* 사용자 아이콘 */}
+              {message.role === "user" ? (
+                <div className="order-3 w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                  사용자
+                </div>
+              ) : (
+                <div className="order-1 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                  비교
+                </div>
+              )}
+
+              {/* 메시지 내용 */}
+              <div className={cn(
+                message.role === "user" ? "max-w-[70%] order-2" : "w-full order-1",
+              )}>
+                <div className="bg-gray-50 rounded-lg p-5 text-gray-900 break-words">
+                  {/* AI 모델 정보 표시 */}
+                  {message.role === "assistant" && message.modelInfo && message.modelInfo.provider && message.modelInfo.model && (
+                    <div className="text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200">
+                      🤖 {message.modelInfo.provider}: {message.modelInfo.model}
+                    </div>
+                  )}
+                  
+                  {/* 마크다운 렌더링 */}
+                  <div className="text-gray-900 break-words">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+                
+                {/* 타임스탬프 */}
+                <div className={cn(
+                  "text-xs text-gray-500 mt-3",
+                  message.role === "user" ? "text-right" : "text-left"
+                )}>
+                  {message.timestamp.toLocaleTimeString()}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* 로딩 상태 */}
+          {isLoading && (
+            <div className="flex gap-4 justify-start">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
                 비교
               </div>
-            )}
-
-            {/* 메시지 내용 */}
-            <div className={cn(
-              message.role === "user" ? "max-w-[70%] order-2" : "w-full order-1",
-            )}>
-              <div className="bg-gray-50 rounded-lg p-5 text-gray-900 break-words">
-                {/* AI 모델 정보 표시 */}
-                {message.role === "assistant" && message.modelInfo && message.modelInfo.provider && message.modelInfo.model && (
-                  <div className="text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200">
-                    🤖 {message.modelInfo.provider}: {message.modelInfo.model}
+              <div className="w-full">
+                <div className="bg-gray-50 rounded-lg p-5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                   </div>
-                )}
-                
-                {/* 마크다운 렌더링 */}
-                <div className="text-gray-900 break-words">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {message.content}
-                  </ReactMarkdown>
-                </div>
-              </div>
-              
-              {/* 타임스탬프 */}
-              <div className={cn(
-                "text-xs text-gray-500 mt-3",
-                message.role === "user" ? "text-right" : "text-left"
-              )}>
-                {message.timestamp.toLocaleTimeString()}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* 로딩 상태 */}
-        {isLoading && (
-          <div className="flex gap-4 justify-start">
-            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-              비교
-            </div>
-            <div className="w-full">
-              <div className="bg-gray-50 rounded-lg p-5">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                  <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 입력 영역 */}
