@@ -9,6 +9,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage
 from controller import qna
 from controller import rag
+from controller import compare
 
 # 환경 변수 로드
 load_dotenv()
@@ -26,6 +27,7 @@ app.add_middleware(
 
 app.include_router(qna.router)
 app.include_router(rag.router)
+app.include_router(compare.router)
 
 
 @app.get("/")

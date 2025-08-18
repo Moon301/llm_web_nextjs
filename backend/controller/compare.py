@@ -1,16 +1,18 @@
 from fastapi import APIRouter, HTTPException, Form
+from dotenv import load_dotenv
+import json
+from langchain_ollama import ChatOllama
+
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import os
-from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
 
 from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-import json
 
-# 환경 변수 로드
+
 load_dotenv()
 
 router = APIRouter(
@@ -25,6 +27,10 @@ class ChatMessage(BaseModel):
     content: str
     timestamp: Optional[str] = None
 
+class ModelInfo(BaseModel):
+    provider: str
+    model: str
+
 class ChatRequest(BaseModel):
     message: str
     tab_type: str  
@@ -36,7 +42,9 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     conversation_id: Optional[str] = None
-    model_info: Optional[Dict[str, str]] = None
+    model_info: Optional[ModelInfo] = None
+    status: Optional[str] = "success"
+
 
 # LangGraph 상태 정의 - 딕셔너리 기반
 class ChatState(dict):
@@ -53,7 +61,6 @@ class ChatState(dict):
     
     def get_conversation_id(self):
         return self["conversation_id"]
-
 # LLM 모델 초기화 함수
 def get_llm(use_openai: bool, select_model: str):
     if use_openai:
@@ -198,31 +205,39 @@ def get_or_create_workflow():
     
     return chat_workflow
 
-@router.post("/qna", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+
+@router.post("/compare", response_model=ChatResponse)
+async def compare_models(
+    message: str = Form(...),
+    conversationId: str = Form(""),
+    conversationHistory: str = Form("[]"),
+    selectedModel: str = Form(...),  # 단일 모델 처리
+    useOpenAI: str = Form("false")
+):
+    """
+    모델 비교 엔드포인트 - 단일 모델 처리 (프론트엔드에서 3개 모델을 개별적으로 요청)
+    """
     try:
-        print(f"=== Chat Request Debug ===")
-        print(f"Message: {request.message}")
-        print(f"Tab Type: {request.tab_type}")
-        print(f"Use OpenAI: {request.use_openai}")
-        print(f"Selected Model: {request.select_model}")
-        print(f"Conversation ID: {request.conversation_id}")
-        print(f"Conversation History Length: {len(request.conversation_history)}")
+        print(f"=== Compare Model Request Debug ===")
+        print(f"Message: {message}")
+        print(f"Selected Model: {selectedModel}")
+        print(f"Conversation ID: {conversationId}")
+        print(f"Use OpenAI: {useOpenAI}")
         
-        # 워크플로우 가져오기
-        workflow = get_or_create_workflow()
+        # Form 데이터 파싱
+        use_openai = useOpenAI.lower() == "true"
+        conv_history = json.loads(conversationHistory) if conversationHistory else []
+        print(f"Conversation History Length: {len(conv_history)}")
         
         # 대화 ID 생성 또는 기존 것 사용
-        conversation_id = request.conversation_id or f"conv_{hash(str(request.message))}"
+        conversation_id = conversationId or f"compare_{hash(str(message))}"
         
         # 기존 대화 상태 복원 또는 새로 생성
-        if request.conversation_id and memory_saver:
+        if conversationId and memory_saver:
             try:
-                # MemorySaver에서 기존 상태 복원
                 existing_state = memory_saver.get(conversation_id)
                 if existing_state and existing_state.get("messages"):
                     print(f"Restored existing conversation state: {conversation_id}")
-                    print(f"Existing messages count: {len(existing_state['messages'])}")
                     state = existing_state
                 else:
                     print(f"No existing state found, creating new: {conversation_id}")
@@ -235,117 +250,79 @@ async def chat(request: ChatRequest):
             state = ChatState(conversation_id=conversation_id)
         
         # 상태에 메타데이터 추가
-        state["tab_type"] = request.tab_type
-        state["use_openai"] = request.use_openai
-        state["select_model"] = request.select_model
+        state["tab_type"] = "compare"
+        state["use_openai"] = use_openai
+        state["select_model"] = selectedModel
         
-        # 대화 기록 추가 (기존 기록이 없거나 새 대화인 경우)
-        if not state["messages"] and request.conversation_history:
-            print(f"Adding conversation history: {len(request.conversation_history)} messages")
-            for msg in request.conversation_history:
-                state.add_message(msg.role, msg.content)
-        elif state["messages"]:
-            print(f"Using existing messages: {len(state['messages'])} messages")
-        else:
-            print("No conversation history to add")
+        # 대화 기록 추가
+        if not state["messages"] and conv_history:
+            print(f"Adding conversation history: {len(conv_history)} messages")
+            for msg in conv_history:
+                state.add_message(msg["role"], msg["content"])
         
         # 사용자 메시지 추가
-        state.add_message("user", request.message)
+        state.add_message("user", message)
         print(f"Current state messages count: {len(state['messages'])}")
         
-        # LangGraph 워크플로우 실행
         try:
-            print("Executing LangGraph workflow...")
+            # 시스템 프롬프트 설정
+            system_prompt = "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요."
             
-            # 간단한 워크플로우 실행
-            result = workflow.invoke(state)
-            print(f"Workflow execution completed")
+            # LangChain 메시지 형식으로 변환
+            langchain_messages = [SystemMessage(content=system_prompt)]
+            for msg in state["messages"]:
+                if msg["role"] == "user":
+                    langchain_messages.append(HumanMessage(content=msg["content"]))
+                elif msg["role"] == "assistant":
+                    langchain_messages.append(AIMessage(content=msg["content"]))
             
-            # AI 응답 추출
-            ai_response = None
-            for msg in result["messages"]:
-                if msg["role"] == "assistant":
-                    ai_response = msg["content"]
-                    break
+            # 모델 설정에 따라 LLM 선택
+            llm = get_llm(use_openai, selectedModel)
             
-            if not ai_response:
-                raise Exception("AI response not found in workflow result")
+            # AI 응답 생성
+            response = llm.invoke(langchain_messages)
+            ai_response = response.content
             
-            print(f"AI Response generated: {ai_response[:100]}...")
+            # 응답을 상태에 추가
+            state.add_message("assistant", ai_response)
+            
+            # 메모리에 상태 저장
+            if memory_saver:
+                memory_saver.put(conversation_id, state)
+            
+            print(f"Compare Model Response generated: {ai_response[:100]}...")
+            
+            return ChatResponse(
+                response=ai_response,
+                conversation_id=conversation_id,
+                model_info=ModelInfo(
+                    provider="Local" if not use_openai else "OpenAI",
+                    model=selectedModel
+                ),
+                status="success"
+            )
             
         except Exception as e:
-            print(f"LangGraph workflow execution error: {e}")
-            # 폴백: 직접 LLM 호출
-            print("Falling back to direct LLM call...")
+            print(f"Error in compare model response generation: {e}")
+            error_response = f"죄송합니다. 모델 응답 생성 중 오류가 발생했습니다: {str(e)}"
             
-            try:
-                # 시스템 프롬프트 설정
-                system_prompts = {
-                    "qna": "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요.",
-                }
-                
-                system_prompt = system_prompts.get(request.tab_type, system_prompts["qna"])
-                
-                # LangChain 메시지 형식으로 변환
-                langchain_messages = [SystemMessage(content=system_prompt)]
-                for msg in state["messages"]:
-                    if msg["role"] == "user":
-                        langchain_messages.append(HumanMessage(content=msg["content"]))
-                    elif msg["role"] == "assistant":
-                        langchain_messages.append(AIMessage(content=msg["content"]))
-                
-                # 모델 설정에 따라 LLM 선택
-                llm = get_llm(request.use_openai, request.select_model)
-                
-                # AI 응답 생성
-                response = llm.invoke(langchain_messages)
-                ai_response = response.content
-                
-                # 상태에 AI 응답 추가
-                state.add_message("assistant", ai_response)
-                
-                print(f"Fallback LLM response: {ai_response[:100]}...")
-                
-            except Exception as fallback_error:
-                print(f"Fallback LLM call also failed: {fallback_error}")
-                ai_response = f"[{request.tab_type.upper()}] 시스템 오류로 인해 기본 응답을 제공합니다: {request.message}에 대한 답변입니다."
-                state.add_message("assistant", ai_response)
-        
-        if not ai_response:
-            raise HTTPException(status_code=500, detail="AI 응답 생성 실패")
-        
-        # MemorySaver에 상태 저장
-        if memory_saver:
-            try:
-                print(f"Saving state to MemorySaver: {conversation_id}")
-                print(f"State to save: {state}")
+            # 에러 응답을 상태에 추가
+            state.add_message("assistant", error_response)
+            
+            # 메모리에 상태 저장
+            if memory_saver:
                 memory_saver.put(conversation_id, state)
-                print(f"State saved to MemorySaver: {conversation_id}")
-                
-                # 저장된 상태 확인
-                saved_state = memory_saver.get(conversation_id)
-                if saved_state:
-                    print(f"Verified saved state: {len(saved_state.get('messages', []))} messages")
-                else:
-                    print("Warning: Saved state not found after saving")
-                    
-            except Exception as e:
-                print(f"Error saving state to MemorySaver: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        return ChatResponse(
-            response=ai_response,
-            conversation_id=conversation_id,
-            model_info={
-                "provider": "OpenAI" if request.use_openai else "Ollama",
-                "model": request.select_model
-            }
-        )
-        
+            
+            return ChatResponse(
+                response=error_response,
+                conversation_id=conversation_id,
+                model_info=ModelInfo(
+                    provider="Local" if not use_openai else "OpenAI",
+                    model=selectedModel
+                ),
+                status="error"
+            )
+            
     except Exception as e:
-        print(f"=== Error in chat endpoint ===")
-        print(f"Error: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Compare models error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Compare models failed: {str(e)}")

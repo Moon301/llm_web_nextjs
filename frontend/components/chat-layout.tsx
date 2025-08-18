@@ -15,7 +15,7 @@ type MenuTab = "home" | "qna" | "rag" | "compare"
 
 export default function ChatLayout() {
   const [activeTab, setActiveTab] = useState<MenuTab>("home")
-  const { messages, isLoading, qnaChat, ragChat, clearChat, setTab } = useChat()
+  const { messages, isLoading, qnaChat, ragChat, compareChat, clearChat, setTab } = useChat()
 
   // 탭 변경 시 대화 내용 유지
   const handleTabChange = (tab: MenuTab) => {
@@ -174,7 +174,8 @@ export default function ChatLayout() {
           <CompareChat
             messages={messages}
             isLoading={isLoading}
-            onSendMessage={qnaChat.sendMessage}
+            onSendCompareMessage={compareChat.sendCompareMessage}
+            comparisonMessages={compareChat.comparisonMessages}
           />
         )}
       </div>

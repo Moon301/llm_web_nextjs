@@ -8,25 +8,40 @@ import { Message } from "@/types/chat"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { CodeBlock } from "@/components/code-block"
-import { BarChart3 } from "lucide-react"
+import { BarChart3, Bot, User } from "lucide-react"
 
 interface CompareChatProps {
   messages: Message[]
   isLoading: boolean
-  onSendMessage: (content: string, modelConfig?: { useOpenAI: boolean; selectedModel: string }) => void
+  onSendCompareMessage: (content: string, modelConfig?: { selectedModels: { model1: string; model2: string; model3: string } }) => void
+  comparisonMessages: any[]
 }
 
-export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatProps) {
+interface ComparisonMessage {
+  id: string
+  userMessage: string
+  timestamp: Date
+  modelResponses: {
+    model1: { content: string; model: string; provider: string; isLoading?: boolean }
+    model2: { content: string; model: string; provider: string; isLoading?: boolean }
+    model3: { content: string; model: string; provider: string; isLoading?: boolean }
+  }
+}
+
+export function CompareChat({ messages, isLoading, onSendCompareMessage, comparisonMessages }: CompareChatProps) {
   const [inputValue, setInputValue] = useState("")
   const [selectedModels, setSelectedModels] = useState({
-    model1: "gpt-3.5-turbo",
-    model2: "gpt-4",
-    model3: "llama3.2:7b"
+    model1: "gemma3:270m",
+    model2: "gpt-oss:20b",
+    model3: "qwen3:14b"
   })
+  
+  // comparisonMessages는 props로 받음 (로컬 상태 제거)
+  console.log('CompareChat received comparisonMessages:', comparisonMessages)
 
   const handleSendMessage = () => {
     if (inputValue.trim() && !isLoading) {
-      onSendMessage(inputValue)
+      onSendCompareMessage(inputValue, {selectedModels : selectedModels})
       setInputValue("")
     }
   }
@@ -65,6 +80,7 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
 
   // 사용 가능한 모델 목록
   const availableModels = [
+    "gemma3:270m",
     "gpt-oss:20b",
     "gpt-oss:120b",
     "gemma3:12b",
@@ -78,7 +94,7 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
     <div className="flex-1 flex flex-col min-h-0">
       {/* 모델 비교 설정 UI */}
       <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex-shrink-0">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-3">
@@ -130,9 +146,9 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
 
       {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
-        <div className="max-w-4xl mx-auto w-full">
+        <div className="max-w-6xl mx-auto w-full">
           {/* 시작 화면 - 메시지가 없을 때만 표시 */}
-          {messages.length === 0 && (
+          {comparisonMessages.length === 0 && (
             <div className="text-center py-16">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mb-6">
                 <BarChart3 className="w-10 h-10 text-white" />
@@ -141,7 +157,7 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
                 모델 비교
               </h2>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-8">
-                여러 AI 모델의 응답을 비교해보세요. 각 모델의 특성과 성능을 직접 체험할 수 있습니다.
+                여러 AI 모델의 응답을 동시에 비교해보세요. 각 모델의 특성과 성능을 한눈에 비교할 수 있습니다.
               </p>
               <div className="bg-blue-50 rounded-xl p-6 max-w-md mx-auto">
                 <h3 className="text-lg font-semibold text-blue-900 mb-3">🔄 비교 방법</h3>
@@ -156,83 +172,113 @@ export function CompareChat({ messages, isLoading, onSendMessage }: CompareChatP
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-blue-600">3.</span>
-                    <span>각 모델의 응답을 비교 분석해보세요</span>
+                    <span>3개 모델의 응답을 나란히 비교해보세요</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn("flex gap-4", message.role === "user" ? "justify-end" : "justify-start")}
-            >
-              {/* 사용자 아이콘 */}
-              {message.role === "user" ? (
-                <div className="order-3 w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                  사용자
-                </div>
-              ) : (
-                <div className="order-1 w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                  비교
-                </div>
-              )}
-
-              {/* 메시지 내용 */}
-              <div className={cn(
-                message.role === "user" ? "max-w-[70%] order-2" : "w-full order-1",
-              )}>
-                <div className="bg-gray-50 rounded-lg p-5 text-gray-900 break-words">
-                  {/* AI 모델 정보 표시 */}
-                  {message.role === "assistant" && message.modelInfo && message.modelInfo.provider && message.modelInfo.model && (
-                    <div className="text-xs text-gray-500 mb-3 pb-2 border-b border-gray-200">
-                      🤖 {message.modelInfo.provider}: {message.modelInfo.model}
-                    </div>
-                  )}
-                  
-                  {/* 마크다운 렌더링 */}
-                  <div className="text-gray-900 break-words">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                      {message.content}
-                    </ReactMarkdown>
+          {/* 비교 메시지들 */}
+          {comparisonMessages.map((message) => (
+            <div key={message.id} className="space-y-6">
+              {/* 사용자 질문 */}
+              <div className="flex gap-4 justify-end">
+                <div className="max-w-[70%]">
+                  <div className="bg-gray-200 rounded-lg p-4 break-words">
+                    <div className="text-black">{message.userMessage}</div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2 text-right">
+                    {message.timestamp.toLocaleTimeString()}
                   </div>
                 </div>
-                
-                {/* 타임스탬프 */}
-                <div className={cn(
-                  "text-xs text-gray-500 mt-3",
-                  message.role === "user" ? "text-right" : "text-left"
-                )}>
-                  {message.timestamp.toLocaleTimeString()}
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                  Me
+                </div>
+              </div>
+
+              {/* 3개 모델 응답 비교 */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* 모델 1 응답 */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                    <Bot className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700">모델 1</span>
+                    <span className="text-xs text-gray-500">({message.modelResponses.model1.model})</span>
+                  </div>
+                  
+                  {message.modelResponses.model1.isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <span className="text-sm text-gray-500">응답 생성 중...</span>
+                    </div>
+                  ) : (
+                    <div className="text-gray-900">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {message.modelResponses.model1.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+
+                {/* 모델 2 응답 */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                    <Bot className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-gray-700">모델 2</span>
+                    <span className="text-xs text-gray-500">({message.modelResponses.model2.model})</span>
+                  </div>
+                  
+                  {message.modelResponses.model2.isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <span className="text-sm text-gray-500">응답 생성 중...</span>
+                    </div>
+                  ) : (
+                    <div className="text-gray-900">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {message.modelResponses.model2.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+
+                {/* 모델 3 응답 */}
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+                    <Bot className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-medium text-gray-700">모델 3</span>
+                    <span className="text-xs text-gray-500">({message.modelResponses.model3.model})</span>
+                  </div>
+                  
+                  {message.modelResponses.model3.isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+                      <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                      <span className="text-sm text-gray-500">응답 생성 중...</span>
+                    </div>
+                  ) : (
+                    <div className="text-gray-900">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {message.modelResponses.model3.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           ))}
-
-          {/* 로딩 상태 */}
-          {isLoading && (
-            <div className="flex gap-4 justify-start">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
-                비교
-              </div>
-              <div className="w-full">
-                <div className="bg-gray-50 rounded-lg p-5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       {/* 입력 영역 */}
       <div className="border-t border-gray-200 p-4 flex-shrink-0">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <form
             onSubmit={(e) => {
               e.preventDefault()

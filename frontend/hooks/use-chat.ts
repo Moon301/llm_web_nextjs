@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { useQnaChat } from "./use-qna-chat"
 import { useRagChat } from "./use-rag-chat"
+import { useCompareChat } from "./use-compare-chat"
 
 export function useChat() {
   const [activeTab, setActiveTab] = useState<string>("home")
@@ -10,6 +11,7 @@ export function useChat() {
   // 각 탭별로 전용 훅 사용
   const qnaChat = useQnaChat()
   const ragChat = useRagChat()
+  const compareChat = useCompareChat()
   
   // 현재 활성 탭에 따른 메시지와 로딩 상태
   const getCurrentMessages = () => {
@@ -18,6 +20,8 @@ export function useChat() {
         return qnaChat.messages
       case "rag":
         return ragChat.messages
+      case "compare":
+        return compareChat.messages
       default:
         return []
     }
@@ -29,6 +33,8 @@ export function useChat() {
         return qnaChat.isLoading
       case "rag":
         return ragChat.isLoading
+      case "compare":
+        return compareChat.isLoading
       default:
         return false
     }
@@ -40,6 +46,8 @@ export function useChat() {
         return qnaChat.currentChatId
       case "rag":
         return ragChat.currentChatId
+      case "compare":
+        return compareChat.currentChatId
       default:
         return null
     }
@@ -59,8 +67,11 @@ export function useChat() {
       case "rag":
         ragChat.clearChat()
         break
+      case "compare":
+        compareChat.clearChat()
+        break
     }
-  }, [activeTab, qnaChat, ragChat])
+  }, [activeTab, qnaChat, ragChat, compareChat])
   
   return {
     // 현재 탭 정보
@@ -75,6 +86,7 @@ export function useChat() {
     // 탭별 전용 함수들
     qnaChat,
     ragChat,
+    compareChat,
     
     // 공통 함수
     clearChat: clearCurrentChat,

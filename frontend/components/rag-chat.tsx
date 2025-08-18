@@ -101,22 +101,15 @@ export function RagChat({
       console.log('임베딩 시작:', uploadedFiles.map(f => f.name))
       
       // FormData를 사용하여 파일과 함께 전송
-      const formData = new FormData()
-      formData.append('useOpenAI', useOpenAI.toString())
-      formData.append('selectedModel', selectedModel)
-      
+      const formData = new FormData()      
       // 업로드된 파일들 추가
       uploadedFiles.forEach((file) => {
         formData.append('files', file)
       })
 
       // 요청 URL 로깅
-      const requestUrl = 'http://localhost:8002/api/chat/embed'
+      const requestUrl = 'http://127.0.0.1:8002/api/chat/embed'
       console.log('요청 URL:', requestUrl)
-      console.log('FormData 내용:')
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value)
-      }
 
       // 임베딩 API 엔드포인트로 전송
       const response = await fetch(requestUrl, {

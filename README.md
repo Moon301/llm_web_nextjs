@@ -128,9 +128,9 @@ FRONTEND_URL=http://localhost:3000
 
 ## 🌐 접속 주소
 
-- **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:8000
-- **API 문서**: http://localhost:8000/docs
+- **Frontend**: http://localhost:3003
+- **Backend**: http://localhost:8002
+- **API 문서**: http://localhost:8002/docs
 
 ## 🔄 개발 워크플로우
 
