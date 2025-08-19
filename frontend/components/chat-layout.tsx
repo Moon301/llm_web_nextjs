@@ -3,19 +3,20 @@
 import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, RotateCcw, Bot, Database, BarChart3 } from "lucide-react"
+import { MessageSquare, RotateCcw, Bot, Database, BarChart3, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useChat } from "@/hooks/use-chat"
 import { HomePage } from "@/components/home-page"
 import { QnaChat } from "@/components/qna-chat"
 import { RagChat } from "@/components/rag-chat"
 import { CompareChat } from "@/components/compare-chat"
+import { Quality } from "@/components/quality"
 
-type MenuTab = "home" | "qna" | "rag" | "compare" 
+type MenuTab = "home" | "qna" | "rag" | "compare" | "quality" 
 
 export default function ChatLayout() {
   const [activeTab, setActiveTab] = useState<MenuTab>("home")
-  const { messages, isLoading, qnaChat, ragChat, compareChat, clearChat, setTab } = useChat()
+  const { messages, isLoading, qnaChat, ragChat, compareChat, qualityChat, clearChat, setTab } = useChat()
 
   // 탭 변경 시 대화 내용 유지
   const handleTabChange = (tab: MenuTab) => {
@@ -105,6 +106,22 @@ export default function ChatLayout() {
               <div className="text-xs opacity-75">AI 모델 비교</div>
             </div>
           </button>
+
+          <button
+            onClick={() => handleTabChange("quality")}
+            className={cn(
+              "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left",
+              activeTab === "quality" ? "bg-blue-200 text-blue-900 shadow-sm" : "text-blue-700 hover:bg-blue-200/50",
+            )}
+          >
+            <Sparkles className="h-5 w-5" />
+            <div>
+              <div className="font-medium">답변향상</div>
+              <div className="text-xs opacity-75">OpenAI 모델의 답변품질 향상</div>
+            </div>
+          </button>
+
+        
         </div>
 
         {/* Clear Chat Button */}
@@ -120,6 +137,22 @@ export default function ChatLayout() {
             대화기록 초기화
           </Button>
         </div>
+
+        {/* External Links */}
+        <div className="p-4 flex-shrink-0 border-t border-blue-200">
+          <a
+            href="http://keti-ev1.iptime.org:9901/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left text-blue-700 hover:bg-blue-200/50 bg-transparent border border-blue-300"
+          >
+            <Database className="h-4 w-4" />
+            <div>
+              <div className="font-medium text-sm">전기차 데이터</div>
+              <div className="text-xs opacity-75">외부 링크로 이동</div>
+            </div>
+          </a>
+        </div>
       </div>
 
       {/* 메인 채팅 영역 */}
@@ -133,12 +166,14 @@ export default function ChatLayout() {
                 {activeTab === "qna" && "Q&A 채팅"}
                 {activeTab === "rag" && "RAG 채팅"}
                 {activeTab === "compare" && "모델 비교"}
+                {activeTab === "quality" && "답변 향상"}
               </h1>
               <p className="text-sm text-gray-600">
                 {activeTab === "home" && "AI 기반 대화형 챗봇 플랫폼입니다."}
                 {activeTab === "qna" && "일반적인 질문과 답변을 위한 채팅입니다."}
                 {activeTab === "rag" && "문서 기반 검색 증강 생성 채팅입니다."}
                 {activeTab === "compare" && "여러 AI 모델의 응답을 비교해보세요."}
+                {activeTab === "quality" && "OpenAI 모델의 답변품질 향상"}
               </p>
             </div>
           </div>
@@ -176,6 +211,15 @@ export default function ChatLayout() {
             isLoading={isLoading}
             onSendCompareMessage={compareChat.sendCompareMessage}
             comparisonMessages={compareChat.comparisonMessages}
+          />
+        )}
+
+        {activeTab === "quality" && (
+          <Quality
+            messages={messages}
+            isLoading={isLoading}
+            onSendQualityMessage={qualityChat.sendQualityMessage}
+            onSendHighQualityMessage={qualityChat.sendHighQualityMessage}
           />
         )}
       </div>

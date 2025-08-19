@@ -54,7 +54,7 @@ export function useRagChat() {
         formData.append('ragKey', ragKey)
 
         // RAG API 엔드포인트로 전송 (Backend 직접 호출)
-        const response = await fetch('http://localhost:8002/api/chat/rag', {
+        const response = await fetch('http://127.0.0.1:8002/api/chat/rag', {
           method: 'POST',
           body: formData,
         })

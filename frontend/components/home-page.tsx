@@ -132,38 +132,24 @@ export function HomePage() {
               </div>
               
               <div className="space-y-4">
-                {/* GPT-OSS Models */}
+                {/* GPT-OSS (OpenAI 오픈웨이트) */}
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">GPT-OSS 시리즈</h4>
-                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">2024년</span>
+                    <h4 className="font-semibold text-gray-900">GPT-OSS (20B / 120B)</h4>
+                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">2025년 8월</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    오픈소스 GPT 모델로, GPT-3.5와 유사한 성능을 제공합니다.
-                  </p>
-                  <div className="text-xs text-gray-500 mb-2">
-                    <span className="font-medium">모델:</span> GPT-OSS:20B, GPT-OSS:120B
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <span className="font-medium">특징:</span> 오픈소스, 로컬 실행, 커스터마이징 가능
-                  </div>
+                  <p className="text-sm text-gray-600 mb-2">OpenAI가 공개한 오픈 가중치 텍스트 모델. 함수 호출·구조적 출력 지원.</p>
+                  <div className="text-xs text-gray-500"><span className="font-medium">특징:</span> 120B(80GB GPU), 20B(16GB 메모리)에서도 실행 가능·로컬 추론 적합·강력한 추론 성능</div>
                 </div>
 
-                {/* Gemma Models */}
+                {/* Gemma 3 */}
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">Gemma 시리즈</h4>
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">2024년 2월</span>
+                    <h4 className="font-semibold text-gray-900">Gemma 3</h4>
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">2025년 3월</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Google DeepMind에서 개발한 경량화된 오픈소스 언어 모델입니다.
-                  </p>
-                  <div className="text-xs text-gray-500 mb-2">
-                    <span className="font-medium">모델:</span> Gemma3:12B, Gemma2:9B, Gemma2:2B
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <span className="font-medium">특징:</span> Google 개발, 경량화, 안전성 중시
-                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Google이 공개한 경량·멀티모달 오픈웨이트 모델. 최대 128K 토큰 컨텍스트 및 140여 개 언어 지원, 함수 호출 및 시각 이해 가능.</p>
+                  <div className="text-xs text-gray-500"><span className="font-medium">특징:</span> 초장 컨텍스트·멀티모달·경량화 설계·다국어 대응</div>
                 </div>
 
                 {/* Phi Models */}
@@ -183,21 +169,14 @@ export function HomePage() {
                   </div>
                 </div>
 
-                {/* Qwen Models */}
+                {/* Qwen 3 */}
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">Qwen 시리즈</h4>
-                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">2023년</span>
+                    <h4 className="font-semibold text-gray-900">Qwen 3</h4>
+                    <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">2025년 4월</span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Alibaba Cloud에서 개발한 다국어 지원 언어 모델입니다.
-                  </p>
-                  <div className="text-xs text-gray-500 mb-2">
-                    <span className="font-medium">모델:</span> Qwen3:14B, Qwen2.5:14B, Qwen2:72B
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    <span className="font-medium">특징:</span> Alibaba 개발, 다국어 지원, 강력한 성능
-                  </div>
+                  <p className="text-sm text-gray-600 mb-2">Alibaba 계열 최신. 다국어·긴 컨텍스트·합리적 추론 성능.</p>
+                  <div className="text-xs text-gray-500"><span className="font-medium">특징:</span> 128K+ 컨텍스트, 다양한 크기</div>
                 </div>
 
                 {/* Llama Models */}
@@ -220,60 +199,8 @@ export function HomePage() {
             </div>
           </div>
 
-          {/* Model Comparison Table */}
-          <div className="mt-8 bg-white rounded-xl p-6 shadow-sm">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">모델 비교표</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">모델</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">개발사</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">출시일</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">특징</th>
-                    <th className="text-left py-2 px-3 font-medium text-gray-700">용도</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  <tr>
-                    <td className="py-2 px-3 font-medium">GPT-4o</td>
-                    <td className="py-2 px-3">OpenAI</td>
-                    <td className="py-2 px-3">2024년 5월</td>
-                    <td className="py-2 px-3">멀티모달, 최고 성능</td>
-                    <td className="py-2 px-3">복잡한 분석, 창의적 작업</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 font-medium">GPT-3.5 Turbo</td>
-                    <td className="py-2 px-3">OpenAI</td>
-                    <td className="py-2 px-3">2022년 11월</td>
-                    <td className="py-2 px-3">빠른 응답, 비용 효율</td>
-                    <td className="py-2 px-3">일반 대화, 간단한 작업</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 font-medium">Llama3.3</td>
-                    <td className="py-2 px-3">Meta</td>
-                    <td className="py-2 px-3">2023년</td>
-                    <td className="py-2 px-3">오픈소스, 커스터마이징</td>
-                    <td className="py-2 px-3">로컬 배포, 특화 모델</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 font-medium">Gemma3:12B</td>
-                    <td className="py-2 px-3">Google</td>
-                    <td className="py-2 px-3">2024년 2월</td>
-                    <td className="py-2 px-3">안전성, 경량화</td>
-                    <td className="py-2 px-3">교육, 연구, 안전한 AI</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 font-medium">Qwen3:14B</td>
-                    <td className="py-2 px-3">Alibaba</td>
-                    <td className="py-2 px-3">2023년</td>
-                    <td className="py-2 px-3">다국어 지원, 강력한 성능</td>
-                    <td className="py-2 px-3">국제 비즈니스, 다국어 서비스</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+         
+          
         </div>
 
         {/* Technical Features */}

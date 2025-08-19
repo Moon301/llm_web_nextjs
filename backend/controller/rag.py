@@ -1,4 +1,4 @@
-from os import curdir
+
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from typing import List
 import json
@@ -81,7 +81,7 @@ async def rag_chat(
             )
         
         try:
-            embeddings = HuggingFaceEmbeddings(model_name="jhgan/ko-sbert-sts")
+            embeddings = HuggingFaceEmbeddings(model_name="dragonkue/BGE-m3-ko")
             vector_db = FAISS.load_local(DB_INDEX, embeddings, allow_dangerous_deserialization=True)
             print(f"VectorDB 로딩 성공: {DB_INDEX}")
         except Exception as e:
@@ -195,7 +195,7 @@ async def embed_documents(
             
             split_docs.extend(chunk.split_documents(docs))
             
-        embed_model = HuggingFaceEmbeddings(model_name ="jhgan/ko-sbert-sts")
+        embed_model = HuggingFaceEmbeddings(model_name ="dragonkue/BGE-m3-ko")
         
         vector_db = FAISS.from_documents(split_docs, embed_model)
         

@@ -47,12 +47,7 @@ class ChatState(dict):
     
     def add_message(self, role: str, content: str):
         self["messages"].append({"role": role, "content": content})
-    
-    def get_messages(self):
-        return self["messages"]
-    
-    def get_conversation_id(self):
-        return self["conversation_id"]
+
 
 # LLM 모델 초기화 함수
 def get_llm(use_openai: bool, select_model: str):
@@ -85,8 +80,6 @@ def generate_ai_response(state: ChatState) -> ChatState:
         # 탭 타입에 따른 시스템 프롬프트 설정
         system_prompts = {
             "qna": "당신은 친근하고 도움이 되는 AI 어시스턴트입니다. 사용자의 질문에 정확하고 유용한 답변을 제공하세요. 이전 대화 맥락을 고려하여 일관성 있는 답변을 해주세요.",
-            "rag": "당신은 문서 기반 검색 증강 생성(RAG) 시스템입니다. 제공된 문서 정보를 바탕으로 정확한 답변을 생성하세요.",
-            "compare": "여러 AI 모델의 응답을 비교 분석하는 시스템입니다. 객관적이고 균형 잡힌 분석을 제공하세요."
         }
         
         # 현재 상태에서 tab_type 추출 (기본값: qna)
