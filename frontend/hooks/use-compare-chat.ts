@@ -59,7 +59,8 @@ export function useCompareChat() {
                     formData.append('conversationHistory', JSON.stringify(conversationHistory))
                     formData.append('selectedModel', modelName)
 
-                    const response = await fetch('http://127.0.0.1:8002/api/chat/compare', {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL  
+                    const response = await fetch(`${apiUrl}/chat/compare`, {
                         method: 'POST',
                         body: formData,
                     })

@@ -108,7 +108,8 @@ export function RagChat({
       })
 
       // 요청 URL 로깅
-      const requestUrl = 'http://127.0.0.1:8002/api/chat/embed'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL 
+      const requestUrl = `${apiUrl}/chat/embed`
       console.log('요청 URL:', requestUrl)
 
       // 임베딩 API 엔드포인트로 전송

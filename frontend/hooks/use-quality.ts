@@ -38,8 +38,8 @@ export function useQuality() {
         formData.append('conversationId', currentChatId || '')
         formData.append('conversationHistory', JSON.stringify(conversationHistory))
 
-
-        const response = await fetch('http://127.0.0.1:8002/api/quality/gpt35', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL 
+        const response = await fetch(`${apiUrl}/quality/gpt35`, {
             method: 'POST',
             body: formData,
         })
@@ -93,8 +93,8 @@ export function useQuality() {
         formData.append('orgQuestion', orgQuestion)
         formData.append('orgAnswer', orgAnswer)
    
-
-        const response = await fetch('http://127.0.0.1:8002/api/quality/gpt4o', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL 
+        const response = await fetch(`${apiUrl}/quality/gpt4o`, {
             method: 'POST',
             body: formData,
         })
